@@ -1,4 +1,4 @@
-## Source for hermits.fyi
+## Source for etho.fyi
 
 This includes all the frontend for [etho.fyi](https://etho.fyi), the backend is just a simple wrapper around [solr](https://solr.apache.org/).
 

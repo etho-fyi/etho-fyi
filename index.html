@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width">
+    <meta name="description" content="Allows searching through Ethoslabs videos.">
+    <link rel="icon" href="data:,">
+    <link rel="canonical" href="https://etho.fyi/">
+    <meta charset="utf-8">
+    <title>Etho fyi</title>
+    <style>
+@media (prefers-color-scheme: dark) {
+    body {
+        filter: none;
+        background-color: white;
+    }
+    *, span, .modal_video, .name, .tld, .result {
+        filter: invert(1);
+    }
+    b, img, input, a, .modal_text, .no_results, .modal_more_container, .modal_more_text {
+        filter: invert(0);
+    }
+}
+
+body {
+    box-sizing: border-box;
+}
+
+.logo {
+    height: 25vh;
+    min-height: 4em;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    gap: 0.8em;
+    transition: all 0.2s ease-in-out;
+    flex-wrap: wrap;
+}
+
+.logo.results {
+    height: 0;
+}
+
+.logo .name {
+    transition: font-size 0.2s ease-in-out;
+    font-size: 3.8em;
+    font-family: serif;
+}
+
+.logo .tld {
+    transition: font-size 0.2s ease-in-out;
+    font-size: 3em;
+    font-family: sans-serif;
+}
+
+.search_container, .submit_container {
+    margin-top: 1em;
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+}
+
+.search_container {
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 0;
+}
+
+#search_box {
+    width: 24em;
+    font-size: 2em;
+    max-width: 100%;
+    padding: 0.2em;
+}
+
+#channel_select {
+    font-size: 2em;
+}
+
+.submit, .lucky {
+    font-size: 1.2em;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    transform: translate(0em);
+    transition: transform 0.15s linear;
+}
+
+@keyframes shake {
+    from {transform: translate(0em);}
+    25% {transform: translate(-0.25em);}
+    75% {transform: translate(0.25em);}
+    to {transform: translate(0em);}
+}
+.lucky:hover {
+    animation: shake 0.3s linear 0s infinite;
+}
+
+.results_container {
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    max-width: 100%;
+    width: 1600px;
+    gap: 2em;
+    flex-wrap: wrap;
+    transition: all 0.2s ease-in-out;
+}
+
+.result {
+    display: grid;
+    width: 16em;
+    padding: 1em;
+    box-shadow: 0 0 0 2px white, 0 0.5em 1em gray;
+    border-radius: 1em;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.result_title {
+    font-family: sans-serif;
+    width: 13.3em;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow: hidden;
+    font-size: 1.2em;
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    margin-bottom: 0.5em;
+    color: black;
+}
+
+.result_text {
+    font-family: sans-serif;
+    width: 16em;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    -webkit-line-clamp: 4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    color: black;
+    margin-top: 1em;
+}
+
+.result_img {
+    width: 16em;
+    height: 9em;
+    background: grey;
+}
+
+.results_container_container {
+    margin-top: 2em;
+    margin-bottom: 16em;
+    display: flex;
+    justify-content: center;
+}
+
+.no_results {
+    margin-top: 3em;
+    font-family: sans-serif;
+    font-size: 2em;
+}
+
+.modal_video {
+    overflow: hidden;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000000aa;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.modal_video_container {
+    max-width: 100%;
+    max-height: 100%;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 1em;
+    border-radius: 0;
+    background-color: white;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.modal_close {
+    display: none;
+    font-family: sans-serif;
+    font-size: 1.5em;
+    margin-bottom: 0.3em;
+    margin-right: 0.3em;
+    cursor: pointer;
+}
+
+.modal_iframe {
+    max-width: 100%;
+    max-height: calc(100vh - 10em);
+    width: 64em;
+    aspect-ratio: 16 / 9;
+    border: none;
+}
+
+.modal_title {
+    float: left;
+    max-width: calc(100% - 1.5em);
+    width: 32em;
+    font-family: sans-serif;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow: hidden;
+    font-size: 1em;
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+.modal_text {
+    min-height: 1em;
+    max-width: 100%;
+    width: 64em;
+    margin-top: 0.5em;
+    font-family: sans-serif;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    -webkit-line-clamp: 4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+.modal_title_close_container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.2em;
+}
+
+.modal_more_container {
+    padding-top: 2em;
+    font-family: sans-serif;
+}
+
+.modal_more_container div {
+    padding-top: 0.5em;
+}
+
+.modal_more_container span {
+    max-width: calc(100% - 1.5em);
+    width: 64em;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+@media only screen and (min-width: 500px) {
+    .modal_title {
+        font-size: 1.5em;
+    }
+
+    .modal_title_close_container {
+        margin-bottom: 0.5em;
+    }
+
+    .logo .name {
+        font-size: 4.8em;
+    }
+
+    .logo .tld {
+        font-size: 4em;
+    }
+
+    .logo {
+        min-height: 6em;
+        gap: 1.2em;
+    }
+}
+
+@media only screen and (min-width: 900px) {
+    .modal_close {
+        display: unset;
+    }
+
+    .modal_title {
+        font-size: 2em;
+    }
+
+    .modal_title_close_container {
+        margin-bottom: 1em;
+    }
+
+    .modal_text {
+        max-width: calc(100% - 1.5em);
+    }
+
+    .modal_iframe {
+        max-width: calc(100% - 1.5em);
+        margin-right: 1.5em;
+    }
+
+    .modal_video_container {
+        box-shadow: 0 0 0 2px white, 0 0.5em 1em gray;
+        border-radius: 1em;
+        max-width: calc(100% - 4.5em);
+        max-height: 100%;
+        padding-left: 2em;
+        padding-right: 0.5em;
+        padding-right: 0.5em;
+    }
+
+    .logo .name {
+        font-size: 7em;
+    }
+
+    .logo .tld {
+        font-size: 6em;
+    }
+
+    .logo {
+        min-height: 8em;
+        gap: 2em;
+    }
+}
+
+    </style>
+    <script type="text/javascript">
+let currentQuery = "";
+let currentPage = 0;
+
+window.addEventListener("popstate", e => {
+    if (e.state && e.state.video_id) {
+        const s = e.state;
+        openModal(s.video_id, s.time, s.text, s.title, s.all_results, true);
+    } else if (e.state && e.state.query) {
+        const modal = document.querySelector(".modal_video");
+
+        if (modal) {
+            modal.remove();
+            return;
+        }
+
+        const s = e.state;
+
+        const search_box = document.getElementById("search_box");
+        search_box.value = s.query;
+
+        search(s.query, 0, true);
+    } else {
+        const search_box = document.getElementById("search_box");
+        search_box.value = "";
+
+        const logo = document.querySelector(".logo");
+        logo.classList.remove("results");
+
+        const results_container = document.querySelector(".results_container");
+        results_container.replaceChildren();
+    }
+});
+
+function openModal(video_id, time, text, title, all_results, from_popstate) {
+    const modal = document.createElement("div");
+    modal.classList.add("modal_video");
+
+
+    const modal_container = document.createElement("div");
+    modal_container.classList.add("modal_video_container");
+
+    const close_button = document.createElement("div");
+    const iframe = document.createElement("iframe");
+    const span = document.createElement("span");
+    const _title = document.createElement("span");
+    const div = document.createElement("div");
+
+    if (!from_popstate) history.pushState({ video_id, time, text, title, all_results }, "");
+
+    close_button.classList.add("modal_close");
+    iframe.classList.add("modal_iframe");
+    span.classList.add("modal_text");
+    _title.classList.add("modal_title");
+    div.classList.add("modal_title_close_container");
+
+    span.innerHTML = `...${text}...`;
+    _title.innerHTML = `${title}`;
+    _title.title = strip(title);
+
+    close_button.innerText = "X";
+
+    iframe.src = `https://www.youtube-nocookie.com/embed/${video_id}?start=${time}`;
+    iframe.allowfullscreen = true;
+
+    close_button.onclick = () => history.back();
+
+    const more_results = document.createElement("div");
+    more_results.classList.add("modal_more_container");
+
+    const more_text = document.createElement("div");
+    more_text.innerText = "More results from this video:";
+    more_text.classList.add("modal_more_text");
+
+    more_results.appendChild(more_text);
+
+    for (let i=1; i<all_results.length; ++i) {
+        const res = all_results[i];
+
+        const div = document.createElement("div");
+        const span = document.createElement("span");
+        const a = document.createElement("a");
+
+        a.href = `https://youtu.be/${res.video_id}?t=${res.time}s`;
+        let time = res.time;
+        let time_text = '';
+        if (time > 3600) {
+            time_text += `${Math.floor(time/3600)}h`;
+            time = time%3600;
+        }
+        if (time > 60) {
+            time_text += `${Math.floor(time/60)}m`;
+            time = time%60;
+        }
+        time_text += `${time}s`;
+        a.innerText = `${time_text}`;
+        span.innerHTML = `...${res.text}...`;
+        div.appendChild(a);
+        div.appendChild(span);
+
+        more_results.appendChild(div);
+    }
+
+
+    div.appendChild(_title);
+    div.appendChild(close_button);
+    modal_container.appendChild(div);
+    modal_container.appendChild(iframe);
+    modal_container.appendChild(span);
+
+    if (all_results.length > 1) {
+        modal_container.appendChild(more_results);
+    }
+
+    modal.appendChild(modal_container);
+
+    modal_container.onclick = e => e.stopPropagation();
+
+    modal.onclick = () => history.back();
+
+    document.body.appendChild(modal);
+}
+
+function strip(html){
+   let doc = new DOMParser().parseFromString(html, 'text/html');
+   return doc.body.textContent || "";
+}
+
+function buildResultElement(video_id, time, text, title, all_results) {
+    const result = document.createElement("a");
+    const _title = document.createElement("span");
+    const span = document.createElement("span");
+    const img = document.createElement("img");
+
+    result.classList.add("result");
+    img.classList.add("result_img");
+    span.classList.add("result_text");
+    _title.classList.add("result_title");
+
+    const strippedTitle = strip(title);
+    const strippedText = strip(text);
+
+    span.innerHTML = `...${text}...`;
+    _title.innerHTML = `${title}`;
+
+    img.src = `https://i.ytimg.com/vi/${video_id}/mqdefault.jpg`;
+
+    function handleClick(e) {
+        if (e.which === 1) {
+            e.preventDefault();
+            openModal(video_id, time, text, title, all_results);
+        } else if (e.which === 2) {
+            e.preventDefault();
+            window.open(`https://youtu.be/${video_id}?t=${time}s`, "_blank").focus();
+        }
+    }
+
+    function preventScrolling(e) {
+        if (e.which === 2) {
+            e.preventDefault();
+        }
+    }
+
+    result.title = strippedTitle;
+    result.href = `https://youtu.be/${video_id}?t=${time}s`;
+
+    if (strippedText) {
+        span.title = strippedText;
+    }
+
+    result.addEventListener("click", handleClick);
+    result.addEventListener("auxclick", handleClick);
+    result.addEventListener("mousedown", preventScrolling);
+
+    result.appendChild(_title);
+    result.appendChild(img);
+    result.appendChild(span);
+
+    return result;
+}
+
+
+function onSubmit(e) {
+    e.preventDefault();
+
+    const search_box = document.getElementById("search_box");
+
+    const query = search_box.value;
+
+    if (!query) return;
+
+    currentPage = 0;
+
+    search(query);
+
+    return true;
+}
+
+async function getResults(query, page) {
+    try {
+        const results = await fetch(`https://etho.fyi/search/?q=${query}&p=${page}`);
+        const json = await results.json();
+        return json;
+    } catch {
+
+        return [];
+    }
+}
+
+function onScrollLoad(e) {
+    if (document.body.offsetHeight - (window.innerHeight + window.pageYOffset) < 100) {
+        window.removeEventListener("scroll", onScrollLoad);
+
+        currentPage += 1;
+
+        search(currentQuery, currentPage);
+    }
+}
+
+async function search(query, page=0, from_popstate) {
+    currentQuery = query;
+
+    const results = await getResults(query, page);
+
+    const results_container = document.querySelector(".results_container");
+
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+
+    params.set("q", query);
+
+    if (!page && !from_popstate) history.pushState({ query }, "", `${path}?${params.toString()}`);
+
+    if (!results.length) {
+        if (page === 0) {
+            const span = document.createElement("span");
+            span.innerText = "No search results.";
+            span.classList.add("no_results");
+
+            results_container.replaceChildren(span);
+        }
+
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    for (const result of results) {
+        fragment.appendChild(buildResultElement(result[0].video_id, result[0].time, result[0].text, result[0].title, result));
+    }
+
+    const logo = document.querySelector(".logo");
+    logo.classList.add("results");
+
+    if (page === 0) {
+        try {
+            // Easter eggs go here
+        } catch {}
+
+        results_container.replaceChildren(fragment);
+    } else {
+        results_container.appendChild(fragment);
+    }
+
+    if (results.length >= 20) {
+        window.addEventListener("scroll", onScrollLoad);
+        onScrollLoad();
+    }
+}
+
+async function feelingLucky(e) {
+    e.preventDefault();
+
+    const search_box = document.getElementById("search_box");
+
+    const query = search_box.value;
+
+    if (!query) return;
+
+    const results = await getResults(query);
+
+    if (results.length) {
+        const video_id = results[0][0].video_id;
+        const time = results[0][0].time;
+
+        window.location.href = `https://youtu.be/${video_id}?t=${time}s`;
+    } else {
+        const results_container = document.querySelector(".results_container");
+
+        const span = document.createElement("span");
+        span.innerText = "No search results.";
+        span.classList.add("no_results");
+
+        results_container.replaceChildren(span);
+    }
+}
+    </script>
+</head>
+<body>
+    <a href="terms.html">
+        Privacy Policy
+    </a>
+    <div class="logo">
+        <span class="name" title="Also check out hermits.fyi!">
+            <span style="color: #76b8e8;">E</span><span style="color: #fbc968;">t</span><span style="color: #fbc968;">h</span><span style="color: #e7624f;">o</span>
+        </span>
+        <span class="tld">
+            <span style="color: #fbc968;">f</span><span style="color: #76b8e8;">y</span><span style="color: #e7624f;">i</span>
+        </span>
+    </div>
+    <form onsubmit="onSubmit(event)">
+        <div class="search_container">
+            <input id="search_box" type="search" placeholder="Search terms here..." autofocus />
+        </div>
+        <div class="submit_container">
+            <input class="submit" type="submit" value="Search" />
+            <input class="lucky" type="button" value="I'm feeling lucky" onclick="feelingLucky(event)" />
+        </div>
+    </form>
+    <div class="results_container_container">
+        <div class="results_container">
+        </div>
+    </div>
+    <script type="text/javascript">
+const params = new URLSearchParams(window.location.search);
+
+if (params.has("q")) {
+    const query = params.get("q");
+    const search_box = document.getElementById("search_box");
+
+    search_box.value = query;
+
+    search(query);
+}
+    </script>
+</body>
+</html>
